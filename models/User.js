@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Password is required'],
         minLength: 8
     }
-});
+},{timestamps: true});
 
 const User = new mongoose.model('User', userSchema);
 
