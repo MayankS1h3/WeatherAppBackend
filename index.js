@@ -1,6 +1,6 @@
 import express from "express";
 import { PORT } from "./config/env.js";
-import {connectToMongoDB} from './database/mongodb.js';
+import connectToMongoDB from './database/mongodb.js';
 
 const app = express();
 
