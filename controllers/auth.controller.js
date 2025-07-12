@@ -88,3 +88,14 @@ export const loginUser = async (req, res, next) => {
         next(error);
     }
 }
+
+export const logoutUser = async (req, res, next) => {
+  try {
+    res.status(200).json({
+      success: true,
+      message: "Logout Successfull"
+    })
+  } catch (error) {
+    next(error);
+  }
+}
