@@ -56,17 +56,11 @@ export const registerUser = async (req, res, next) => {
       text: `Your OTP code is ${otp}`,
     });
 
-    const token = jwt.sign({ userId: newUsers[0]._id }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRY,
-    });
-
     res.status(201).json({
       success: true,
-      message: "New user created successfully",
-      data: {
-        token: token,
-        userId: newUsers[0]._id,
-      },
+      message:
+        "OTP sent to your email. Please verify to complete registration.",
+      userId: newUsers[0]._id,
     });
 
     await mongooseSession.commitTransaction();
@@ -109,6 +103,16 @@ export const verifyOTP = async (req, res, next) => {
     user.otpExpiry = undefined;
 
     await user.save();
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRY,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified',
+      token:token
+    })
   } catch (error) {
     next(error);
   }

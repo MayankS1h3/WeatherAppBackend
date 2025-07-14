@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { data } from "react-router-dom";
 
 const userSchema = new mongoose.Schema(
   {
