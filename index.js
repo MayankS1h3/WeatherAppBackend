@@ -13,8 +13,10 @@ app.use(cookieParser());
 
 // Routes import
 import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
 
 app.use('/api/v1/auth',authRouter);
+app.use('/api/v1/users', userRouter);
 
 app.listen(PORT, async () => {
   console.log(`Server is running at PORT ${PORT}`);
