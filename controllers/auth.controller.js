@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import validator from "validator";
 import User from "../models/User.js";
 import { JWT_SECRET, JWT_EXPIRY } from "../config/env.js";
 
@@ -9,6 +10,13 @@ export const registerUser = async (req, res, next) => {
   mongooseSession.startTransaction();
   try {
     const { name, email, password } = req.body;
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid email",
+      });
+    }
 
     const existingUser = await User.findOne({ email });
 
@@ -55,47 +63,49 @@ export const registerUser = async (req, res, next) => {
 };
 
 export const loginUser = async (req, res, next) => {
-    try {
-        const {email, password} = req.body;
+  try {
+    const { email, password } = req.body;
 
-        const existingUser = await User.findOne({email});
+    const existingUser = await User.findOne({ email });
 
-        if(!existingUser){
-            const error = new Error('User does not exist');
-            error.status = 404;
-            throw error;
-        }
-
-        const isMatch = await bcrypt.compare(password, existingUser.password);
-
-        if(!isMatch){
-            const error = new Error('Password does not match');
-            error.status = 401;
-            throw error;
-        }
-
-        const token = jwt.sign({userId: existingUser._id}, JWT_SECRET, {expiresIn: JWT_EXPIRY});
-
-        res.status(200).json({
-            success: true,
-            message: 'Login Successfull',
-            data: {
-                token: token,
-                userId: existingUser._id
-            }
-        })
-    } catch (error) {
-        next(error);
+    if (!existingUser) {
+      const error = new Error("User does not exist");
+      error.status = 404;
+      throw error;
     }
-}
+
+    const isMatch = await bcrypt.compare(password, existingUser.password);
+
+    if (!isMatch) {
+      const error = new Error("Password does not match");
+      error.status = 401;
+      throw error;
+    }
+
+    const token = jwt.sign({ userId: existingUser._id }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRY,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login Successfull",
+      data: {
+        token: token,
+        userId: existingUser._id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const logoutUser = async (req, res, next) => {
   try {
     res.status(200).json({
       success: true,
-      message: "Logout Successfull"
-    })
+      message: "Logout Successfull",
+    });
   } catch (error) {
     next(error);
   }
-}
+};
