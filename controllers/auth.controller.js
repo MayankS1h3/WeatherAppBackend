@@ -2,8 +2,11 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 import User from "../models/User.js";
-import { JWT_SECRET, JWT_EXPIRY } from "../config/env.js";
+import transporter from "../config/nodemailer.js";
+import { JWT_SECRET, JWT_EXPIRY, USER_EMAIL } from "../config/env.js";
 
 export const registerUser = async (req, res, next) => {
   const mongooseSession = await mongoose.startSession();
@@ -29,16 +32,29 @@ export const registerUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
+
     const newUsers = await User.create(
       [
         {
           name,
           email,
           password: hashedPassword,
+          otp,
+          otpExpiry,
+          isVerified: false,
         },
       ],
       { session: mongooseSession }
     );
+
+    await transporter.sendMail({
+      from: USER_EMAIL,
+      to: email,
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otp}`,
+    });
 
     const token = jwt.sign({ userId: newUsers[0]._id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRY,
@@ -58,6 +74,42 @@ export const registerUser = async (req, res, next) => {
   } catch (error) {
     await mongooseSession.abortTransaction();
     mongooseSession.endSession();
+    next(error);
+  }
+};
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { otp, email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "User already verified",
+      });
+    }
+
+    if (user.otp !== otp || user.otpExpiry < Date.now()) {
+      res.status(400).json({
+        success: false,
+        message: "Wrong otp and otp has expired",
+      });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+
+    await user.save();
+  } catch (error) {
     next(error);
   }
 };
